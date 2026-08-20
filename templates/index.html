@@ -6,32 +6,389 @@
     <title>3D Automated Inspection Dashboard</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
     <style>
-        .video-box {
+        /* ============================================================
+           DESIGN TOKENS
+           Subject: precision 3D scan inspection — formatted as a
+           calibrated instrument interface.
+           ============================================================ */
+        :root {
+            --void:        #0a0e17;
+            --panel:       #10161f;
+            --panel-alt:   #0c111a;
+            --line:        #1e2733;
+            --line-bright: #2c3849;
+
+            --cyan:        #2dd4ee;
+            --cyan-dim:    rgba(45, 212, 238, 0.14);
+            --violet:      #9b8cfa;
+            --violet-dim:  rgba(155, 140, 250, 0.14);
+
+            --pass:        #3ddc97;
+            --pass-dim:    rgba(61, 220, 151, 0.14);
+            --fail:        #ff6b6b;
+            --fail-dim:    rgba(255, 107, 107, 0.14);
+            --warn:        #f5b955;
+
+            --ink-1:       #e7ecf3;
+            --ink-2:       #8b97a8;
+            --ink-3:       #5a6576;
+
+            --font-display: 'Space Grotesk', sans-serif;
+            --font-mono:    'IBM Plex Mono', monospace;
+            --font-body:    'Inter', sans-serif;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            background:
+                radial-gradient(ellipse 900px 500px at 15% -10%, rgba(45, 212, 238, 0.06), transparent),
+                radial-gradient(ellipse 700px 500px at 100% 10%, rgba(155, 140, 250, 0.05), transparent),
+                var(--void);
+            color: var(--ink-1);
+            font-family: var(--font-body);
+            margin: 0;
+            min-height: 100vh;
+        }
+
+        .dashboard-container {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 28px 24px 60px;
+        }
+
+        /* ---------- Header ---------- */
+        .dashboard-header {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 16px;
+            padding-bottom: 20px;
+            margin-bottom: 28px;
+            border-bottom: 1px solid var(--line);
+        }
+        .header-title h1 {
+            font-family: var(--font-display);
+            font-weight: 700;
+            font-size: clamp(1.3rem, 2.4vw, 1.9rem);
+            letter-spacing: 0.02em;
+            margin: 0 0 8px;
+            color: var(--ink-1);
+        }
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+            letter-spacing: 0.08em;
+            padding: 5px 10px 5px 8px;
+            border-radius: 999px;
+            border: 1px solid rgba(255, 107, 107, 0.35);
+            background: var(--fail-dim);
+            color: #ff9b9b;
+        }
+        .badge::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--fail);
+            box-shadow: 0 0 0 0 rgba(255, 107, 107, 0.6);
+            animation: live-ping 1.8s ease-out infinite;
+        }
+        @keyframes live-ping {
+            0%   { box-shadow: 0 0 0 0 rgba(255, 107, 107, 0.55); }
+            70%  { box-shadow: 0 0 0 7px rgba(255, 107, 107, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 107, 107, 0); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .badge::before { animation: none; }
+        }
+
+        .btn {
+            font-family: var(--font-display);
+            font-weight: 600;
+            font-size: 0.85rem;
+            letter-spacing: 0.03em;
+            border-radius: 8px;
+            padding: 12px 20px;
+            border: none;
+            cursor: pointer;
+            transition: transform 0.12s ease, box-shadow 0.12s ease, opacity 0.12s ease;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, var(--cyan), #1fa8c4);
+            color: #061217;
+            box-shadow: 0 0 0 1px rgba(45, 212, 238, 0.3), 0 8px 24px -8px rgba(45, 212, 238, 0.5);
+        }
+        .btn-primary:hover  { transform: translateY(-1px); }
+        .btn-primary:active { transform: translateY(0); }
+        .btn-primary:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
+        .btn-primary[disabled] {
+            opacity: 0.55;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .btn-primary .spinner {
+            display: inline-block;
+            width: 11px; height: 11px;
+            border: 2px solid rgba(6, 18, 23, 0.35);
+            border-top-color: #061217;
+            border-radius: 50%;
+            margin-right: 7px;
+            vertical-align: -1px;
+            animation: spin 0.7s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ---------- Error Banner ---------- */
+        .error-banner {
+            display: none;
+            align-items: center;
+            gap: 10px;
+            background: var(--fail-dim);
+            border: 1px solid rgba(255, 107, 107, 0.35);
+            color: #ffb3b3;
+            padding: 11px 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 0.87rem;
+            font-family: var(--font-body);
+        }
+        .error-banner.visible { display: flex; }
+        .error-banner button {
+            margin-left: auto;
+            background: none;
+            border: none;
+            color: inherit;
+            cursor: pointer;
+            font-size: 1rem;
+            line-height: 1;
+            opacity: 0.75;
+        }
+        .error-banner button:hover { opacity: 1; }
+
+        /* ---------- Section Headers ---------- */
+        h3 {
+            font-family: var(--font-display);
+            font-weight: 600;
+            font-size: 0.82rem;
+            letter-spacing: 0.09em;
+            text-transform: uppercase;
+            color: var(--ink-2);
+            margin: 0 0 12px;
+            padding-left: 12px;
+            position: relative;
+        }
+        h3::before {
+            content: '';
+            position: absolute;
+            left: 0; top: 2px; bottom: 2px;
+            width: 3px;
+            border-radius: 2px;
+            background: var(--cyan);
+        }
+
+        /* ---------- Viewport Frame & Reticle Brackets ---------- */
+        .viewport-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 28px;
+        }
+        .video-card { min-width: 0; }
+
+        .video-box-container {
+            position: relative;
             width: 100%;
             height: 320px;
-            background-color: #0f172a;
-            border-radius: 8px;
-            object-fit: cover;
-            border: 1px solid #334155;
+            background: var(--panel-alt);
+            border-radius: 4px;
+            overflow: hidden;
+            border: 1px solid var(--line);
         }
-        .stream-controls {
-            margin-top: 10px;
-            display: flex;
-            gap: 10px;
-        }
-        .btn-stream {
-            background-color: #3b82f6;
-            color: white;
+        .video-box-container iframe {
+            width: 100%;
+            height: 100%;
             border: none;
-            padding: 8px 12px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 0.85rem;
-            font-weight: 600;
+            position: relative;
+            z-index: 1;
         }
-        .btn-stream:hover {
-            background-color: #2563eb;
+        .reticle-corner {
+            position: absolute;
+            width: 22px;
+            height: 22px;
+            border: 2px solid rgba(45, 212, 238, 0.55);
+            z-index: 2;
+            pointer-events: none;
+            transition: border-color 0.2s ease;
+        }
+        .reticle-corner.tl { top: 8px; left: 8px; border-right: none; border-bottom: none; }
+        .reticle-corner.tr { top: 8px; right: 8px; border-left: none; border-bottom: none; }
+        .reticle-corner.bl { bottom: 8px; left: 8px; border-right: none; border-top: none; }
+        .reticle-corner.br { bottom: 8px; right: 8px; border-left: none; border-top: none; }
+
+        .scan-line {
+            position: absolute;
+            left: 0; right: 0; top: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+            box-shadow: 0 0 10px 1px rgba(45, 212, 238, 0.8);
+            opacity: 0;
+            z-index: 2;
+            pointer-events: none;
+        }
+        body.is-scanning .scan-line {
+            opacity: 1;
+            animation: sweep 1.4s ease-in-out infinite;
+        }
+        body.is-scanning .reticle-corner {
+            border-color: var(--cyan);
+        }
+        @keyframes sweep {
+            0%   { top: 0%; }
+            50%  { top: calc(100% - 2px); }
+            100% { top: 0%; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            body.is-scanning .scan-line { animation: none; opacity: 0.6; top: 50%; }
+        }
+
+        /* ---------- KPI Strip ---------- */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 14px;
+            margin-bottom: 8px;
+        }
+        .kpi-card {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            padding: 16px 18px;
+            position: relative;
+            overflow: hidden;
+        }
+        .kpi-card::before {
+            content: '';
+            position: absolute;
+            left: 0; top: 0; bottom: 0;
+            width: 2px;
+            background: var(--accent, var(--cyan));
+        }
+        .kpi-card:nth-child(1) { --accent: var(--cyan); }
+        .kpi-card:nth-child(2) { --accent: var(--pass); }
+        .kpi-card:nth-child(3) { --accent: var(--violet); }
+        .kpi-card:nth-child(4) { --accent: var(--warn); }
+
+        .kpi-label {
+            display: block;
+            font-family: var(--font-body);
+            font-weight: 600;
+            font-size: 0.68rem;
+            letter-spacing: 0.09em;
+            text-transform: uppercase;
+            color: var(--ink-3);
+            margin-bottom: 6px;
+        }
+        .kpi-value {
+            display: block;
+            font-family: var(--font-mono);
+            font-weight: 500;
+            font-size: 1.6rem;
+            color: var(--ink-1);
+            transition: color 0.2s ease;
+        }
+        .kpi-value.updated { animation: flash-value 0.7s ease; }
+        @keyframes flash-value {
+            0%   { color: var(--cyan); }
+            100% { color: var(--ink-1); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .kpi-value.updated { animation: none; }
+        }
+
+        .last-updated {
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+            color: var(--ink-3);
+            margin: 10px 2px 28px;
+        }
+
+        /* ---------- Data Grid ---------- */
+        .data-grid {
+            display: grid;
+            grid-template-columns: 1.3fr 1fr;
+            gap: 20px;
+        }
+        .data-card {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            padding: 18px 20px;
+        }
+
+        .table-wrapper { overflow-x: auto; }
+        .inspection-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: var(--font-mono);
+            font-size: 0.84rem;
+        }
+        .inspection-table th {
+            text-align: left;
+            font-family: var(--font-body);
+            font-weight: 600;
+            font-size: 0.68rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--ink-3);
+            padding: 0 10px 10px;
+            border-bottom: 1px solid var(--line);
+        }
+        .inspection-table td {
+            padding: 10px;
+            border-bottom: 1px solid var(--line);
+            color: var(--ink-1);
+        }
+        .inspection-table tbody tr:hover { background: rgba(255, 255, 255, 0.02); }
+        .inspection-table tbody tr:last-child td { border-bottom: none; }
+
+        .status-pill {
+            display: inline-block;
+            padding: 2px 9px;
+            border-radius: 4px;
+            font-weight: 600;
+            font-size: 0.76rem;
+            letter-spacing: 0.03em;
+        }
+
+        .chart-container { position: relative; height: 280px; }
+
+        .visually-hidden {
+            position: absolute;
+            width: 1px; height: 1px;
+            overflow: hidden;
+            clip: rect(0 0 0 0);
+            white-space: nowrap;
+        }
+
+        /* ---------- Responsive Breakpoints ---------- */
+        @media (max-width: 860px) {
+            .viewport-grid  { grid-template-columns: 1fr; }
+            .kpi-grid        { grid-template-columns: 1fr 1fr; }
+            .data-grid      { grid-template-columns: 1fr; }
+            .dashboard-header { align-items: flex-start; }
+        }
+        @media (max-width: 420px) {
+            .kpi-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -40,69 +397,94 @@
     <div class="dashboard-container">
         <header class="dashboard-header">
             <div class="header-title">
-                <h1>3D AUTOMATED INSPECTION WORKCELL</h1>
-                <span class="badge live-badge">● LIVE LOCAL FEED</span>
+                <h1>3D Automated Inspection Workcell</h1>
+                <span class="badge live-badge">Live broadcast</span>
             </div>
             <div class="header-actions">
-                <button id="triggerScanBtn" class="btn btn-primary">▶ TRIGGER NEW SCAN</button>
+                <button id="triggerScanBtn" class="btn btn-primary">▶ Trigger New Scan</button>
             </div>
         </header>
 
+        <div id="errorBanner" class="error-banner" role="alert">
+            <span id="errorBannerText">Something went wrong.</span>
+            <button id="errorBannerClose" aria-label="Dismiss error">✕</button>
+        </div>
+
         <section class="viewport-grid">
             <div class="video-card">
-                <h3>🤖 Robot Workcell View</h3>
-                <video id="webcamFeed" class="video-box" autoplay playsinline muted></video>
-                <div class="stream-controls">
-                    <button class="btn-stream" onclick="startWebcam()">📷 Start Robot Camera</button>
+                <h3>Robot Workcell View</h3>
+                <div class="video-box-container">
+                    <span class="reticle-corner tl"></span>
+                    <span class="reticle-corner tr"></span>
+                    <span class="reticle-corner bl"></span>
+                    <span class="reticle-corner br"></span>
+                    <span class="scan-line"></span>
+                    <iframe
+                        src="https://vdo.ninja/?view=utheh-robotcam-2026&autoplay=1&mute=1&transparent=1&cleanview=1"
+                        title="Live camera feed of the robot workcell"
+                        allow="autoplay; camera; microphone; display-capture"
+                        loading="lazy">
+                    </iframe>
                 </div>
             </div>
 
             <div class="video-card">
-                <h3>📐 Creaform VXelements View</h3>
-                <video id="screenFeed" class="video-box" autoplay playsinline muted></video>
-                <div class="stream-controls">
-                    <button class="btn-stream" onclick="startScreenShare()">🖥️ Select Creaform Window</button>
+                <h3>Creaform VXelements View</h3>
+                <div class="video-box-container">
+                    <span class="reticle-corner tl"></span>
+                    <span class="reticle-corner tr"></span>
+                    <span class="reticle-corner bl"></span>
+                    <span class="reticle-corner br"></span>
+                    <span class="scan-line"></span>
+                    <iframe
+                        src="https://vdo.ninja/?view=utheh-creaform-2026&autoplay=1&mute=1&transparent=1&cleanview=1"
+                        title="Live screen share of Creaform VXelements software"
+                        allow="autoplay; camera; microphone; display-capture"
+                        loading="lazy">
+                    </iframe>
                 </div>
             </div>
         </section>
 
-        <section class="kpi-grid">
+        <section class="kpi-grid" aria-live="polite">
             <div class="kpi-card">
-                <span class="kpi-label">TOTAL SCANS</span>
+                <span class="kpi-label">Total Scans</span>
                 <span class="kpi-value" id="totalScans">0</span>
             </div>
             <div class="kpi-card">
-                <span class="kpi-label">PASS RATE</span>
+                <span class="kpi-label">Pass Rate</span>
                 <span class="kpi-value" id="passRate">0%</span>
             </div>
             <div class="kpi-card">
-                <span class="kpi-label">AVG DEVIATION</span>
+                <span class="kpi-label">Avg Deviation</span>
                 <span class="kpi-value" id="avgDeviation">0.000 mm</span>
             </div>
             <div class="kpi-card">
-                <span class="kpi-label">LAST STATUS</span>
+                <span class="kpi-label">Last Status</span>
                 <span class="kpi-value" id="lastStatus">READY</span>
             </div>
         </section>
+        <div class="last-updated" id="lastUpdated"></div>
 
         <section class="data-grid">
             <div class="data-card">
-                <h3>📊 Dimensional Analysis</h3>
+                <h3>Dimensional Analysis</h3>
                 <div class="table-wrapper">
                     <table class="inspection-table">
+                        <caption class="visually-hidden">Measured dimensions compared to nominal values, with pass/fail status</caption>
                         <thead>
                             <tr>
-                                <th>Parameter</th>
-                                <th>Nominal (mm)</th>
-                                <th>Measured (mm)</th>
-                                <th>Dev (mm)</th>
-                                <th>Status</th>
+                                <th scope="col">Parameter</th>
+                                <th scope="col">Nominal (mm)</th>
+                                <th scope="col">Measured (mm)</th>
+                                <th scope="col">Dev (mm)</th>
+                                <th scope="col">Status</th>
                             </tr>
                         </thead>
                         <tbody id="inspectionTableBody">
                             <tr>
-                                <td colspan="5" style="text-align:center; color: #64748b; padding: 20px;">
-                                    Click "TRIGGER NEW SCAN" to load inspection data
+                                <td colspan="5" style="text-align:center; color: var(--ink-3); padding: 24px 10px; font-family: var(--font-body);">
+                                    Click "Trigger New Scan" to load inspection data
                                 </td>
                             </tr>
                         </tbody>
@@ -111,9 +493,9 @@
             </div>
 
             <div class="data-card">
-                <h3>📈 Deviation Profile</h3>
-                <div class="chart-container" style="position: relative; height: 280px;">
-                    <canvas id="deviationChart"></canvas>
+                <h3>Deviation Profile</h3>
+                <div class="chart-container">
+                    <canvas id="deviationChart" role="img" aria-label="Bar chart of measured deviation per parameter"></canvas>
                 </div>
             </div>
         </section>
@@ -121,34 +503,10 @@
 
     <script>
         let deviationChart = null;
+        const scanBtn = document.getElementById('triggerScanBtn');
+        const errorBanner = document.getElementById('errorBanner');
+        const errorBannerText = document.getElementById('errorBannerText');
 
-        // 1. Native Webcam Capture
-        async function startWebcam() {
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { width: { ideal: 1280 }, height: { ideal: 720 } }, 
-                    audio: false 
-                });
-                document.getElementById('webcamFeed').srcObject = stream;
-            } catch (err) {
-                alert("Camera access denied or device not found: " + err.message);
-            }
-        }
-
-        // 2. Native Screen Share Capture (Creaform Window)
-        async function startScreenShare() {
-            try {
-                const stream = await navigator.mediaDevices.getDisplayMedia({ 
-                    video: { displaySurface: "window" }, 
-                    audio: false 
-                });
-                document.getElementById('screenFeed').srcObject = stream;
-            } catch (err) {
-                console.log("Screen share cancelled or failed: ", err);
-            }
-        }
-
-        // Initialize Chart.js
         function initChart() {
             const ctx = document.getElementById('deviationChart').getContext('2d');
             deviationChart = new Chart(ctx, {
@@ -160,7 +518,8 @@
                         data: [],
                         backgroundColor: [],
                         borderColor: [],
-                        borderWidth: 1
+                        borderWidth: 1,
+                        borderRadius: 3
                     }]
                 },
                 options: {
@@ -169,89 +528,150 @@
                     scales: {
                         y: {
                             beginAtZero: true,
-                            grid: { color: '#334155' },
-                            ticks: { color: '#94a3b8' }
+                            grid: { color: '#1e2733' },
+                            ticks: { color: '#8b97a8', font: { family: 'IBM Plex Mono', size: 11 } }
                         },
                         x: {
-                            grid: { color: '#334155' },
-                            ticks: { color: '#94a3b8' }
+                            grid: { display: false },
+                            ticks: { color: '#8b97a8', font: { family: 'IBM Plex Mono', size: 11 } }
                         }
                     },
-                    plugins: {
-                        legend: { display: false }
-                    }
+                    plugins: { legend: { display: false } }
                 }
             });
         }
 
-        // Trigger New Scan via API
-        async function triggerScan() {
-            try {
-                const response = await fetch('/api/scan', { method: 'POST' });
-                const data = await response.json();
-                
-                if (data.success) {
-                    updateDashboard(data);
-                }
-            } catch (err) {
-                console.error("Error triggering scan:", err);
-            }
+        function showError(message) {
+            errorBannerText.textContent = message;
+            errorBanner.classList.add('visible');
         }
 
-        // Update Dashboard Data UI
+        function hideError() {
+            errorBanner.classList.remove('visible');
+        }
+
+        function setScanning(isScanning) {
+            scanBtn.disabled = isScanning;
+            scanBtn.innerHTML = isScanning
+                ? '<span class="spinner"></span>Scanning…'
+                : '▶ Trigger New Scan';
+            document.body.classList.toggle('is-scanning', isScanning);
+        }
+
+        function flashUpdate(el) {
+            el.classList.remove('updated');
+            void el.offsetWidth; // Force reflow to restart element animation
+            el.classList.add('updated');
+        }
+
+        function setText(id, value) {
+            const el = document.getElementById(id);
+            el.textContent = value;
+            flashUpdate(el);
+            return el;
+        }
+
+        async function triggerScan() {
+            hideError();
+            setScanning(true);
+
+            try {
+                const response = await fetch('/api/scan', { method: 'POST' });
+                if (!response.ok) throw new Error(`Server responded with ${response.status}`);
+
+                const data = await response.json();
+
+                if (data.success) {
+                    updateDashboard(data);
+                    document.getElementById('lastUpdated').textContent =
+                        `Last updated ${new Date().toLocaleTimeString()}`;
+                } else {
+                    showError(data.message || 'Scan did not complete successfully.');
+                }
+            } catch (err) {
+                console.error('Error triggering scan:', err);
+                showError('Could not reach the scan service. Check the connection and try again.');
+            } finally {
+                setScanning(false);
+            }
+        }
+        
         function updateDashboard(data) {
             if (data.kpis) {
-                document.getElementById('totalScans').textContent = data.kpis.total_scans || '0';
-                document.getElementById('passRate').textContent = (data.kpis.pass_rate || '0') + '%';
-                document.getElementById('avgDeviation').textContent = (data.kpis.avg_dev || '0.000') + ' mm';
-                
-                const statusElem = document.getElementById('lastStatus');
-                statusElem.textContent = data.kpis.last_status || 'N/A';
-                statusElem.style.color = data.kpis.last_status === 'PASS' ? '#22c55e' : '#ef4444';
+                setText('totalScans', data.kpis.total_scans ?? '0');
+                setText('passRate', `${data.kpis.pass_rate ?? '0'}%`);
+                setText('avgDeviation', `${data.kpis.avg_dev ?? '0.000'} mm`);
+
+                const statusElem = setText('lastStatus', data.kpis.last_status || 'N/A');
+                statusElem.style.color = data.kpis.last_status === 'PASS' ? 'var(--pass)' : 'var(--fail)';
             }
 
             if (data.results && data.results.length > 0) {
-                const tbody = document.getElementById('inspectionTableBody');
-                tbody.innerHTML = '';
-
-                const labels = [];
-                const deviations = [];
-                const colors = [];
-
-                data.results.forEach(row => {
-                    const tr = document.createElement('tr');
-                    const isPass = row.status === 'PASS';
-                    const statusColor = isPass ? '#22c55e' : '#ef4444';
-
-                    tr.innerHTML = `
-                        <td>${row.parameter}</td>
-                        <td>${row.nominal.toFixed(3)}</td>
-                        <td>${row.measured.toFixed(3)}</td>
-                        <td style="color: ${statusColor}; font-weight: bold;">${row.deviation > 0 ? '+' : ''}${row.deviation.toFixed(3)}</td>
-                        <td><span style="background: ${statusColor}22; color: ${statusColor}; padding: 2px 8px; border-radius: 4px; font-weight: bold;">${row.status}</span></td>
-                    `;
-                    tbody.appendChild(tr);
-
-                    labels.push(row.parameter);
-                    deviations.push(row.deviation);
-                    colors.push(isPass ? 'rgba(34, 197, 94, 0.7)' : 'rgba(239, 68, 68, 0.7)');
-                });
-
-                if (deviationChart) {
-                    deviationChart.data.labels = labels;
-                    deviationChart.data.datasets[0].data = deviations;
-                    deviationChart.data.datasets[0].backgroundColor = colors;
-                    deviationChart.data.datasets[0].borderColor = colors.map(c => c.replace('0.7', '1'));
-                    deviationChart.update();
-                }
+                renderTable(data.results);
+                renderChart(data.results);
             }
         }
 
-        // Initialize on page load
+        function renderTable(results) {
+            const tbody = document.getElementById('inspectionTableBody');
+            tbody.innerHTML = '';
+
+            results.forEach(row => {
+                const isPass = row.status === 'PASS';
+                const statusVar = isPass ? 'var(--pass)' : 'var(--fail)';
+                const statusDim = isPass ? 'var(--pass-dim)' : 'var(--fail-dim)';
+                const deviation = Number(row.deviation ?? 0);
+
+                const tr = document.createElement('tr');
+
+                [
+                    row.parameter ?? '—',
+                    Number(row.nominal ?? 0).toFixed(3),
+                    Number(row.measured ?? 0).toFixed(3),
+                ].forEach(text => {
+                    const td = document.createElement('td');
+                    td.textContent = text;
+                    tr.appendChild(td);
+                });
+
+                const devTd = document.createElement('td');
+                devTd.textContent = `${deviation > 0 ? '+' : ''}${deviation.toFixed(3)}`;
+                devTd.style.color = statusVar;
+                devTd.style.fontWeight = '600';
+                tr.appendChild(devTd);
+
+                const statusTd = document.createElement('td');
+                const pill = document.createElement('span');
+                pill.className = 'status-pill';
+                pill.textContent = row.status ?? '—';
+                pill.style.background = statusDim;
+                pill.style.color = statusVar;
+                statusTd.appendChild(pill);
+                tr.appendChild(statusTd);
+
+                tbody.appendChild(tr);
+            });
+        }
+
+        function renderChart(results) {
+            if (!deviationChart) return;
+
+            const labels = results.map(r => r.parameter ?? '—');
+            const deviations = results.map(r => Number(r.deviation ?? 0));
+            const fill = results.map(r => r.status === 'PASS' ? 'rgba(61, 220, 151, 0.65)' : 'rgba(255, 107, 107, 0.65)');
+            const border = results.map(r => r.status === 'PASS' ? 'rgba(61, 220, 151, 1)' : 'rgba(255, 107, 107, 1)');
+
+            deviationChart.data.labels = labels;
+            deviationChart.data.datasets[0].data = deviations;
+            deviationChart.data.datasets[0].backgroundColor = fill;
+            deviationChart.data.datasets[0].borderColor = border;
+            deviationChart.update();
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             initChart();
-            startWebcam(); // Auto-prompt for webcam on page load
-            document.getElementById('triggerScanBtn').addEventListener('click', triggerScan);
+            scanBtn.addEventListener('click', triggerScan);
+            document.getElementById('errorBannerClose').addEventListener('click', hideError);
         });
     </script>
 </body>
