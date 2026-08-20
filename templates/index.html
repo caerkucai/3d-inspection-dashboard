@@ -173,7 +173,7 @@
             overflow: hidden;
             border: 1px solid var(--line);
         }
-        .video-box-container video {
+        .video-box-container iframe {
             width: 100%;
             height: 100%;
             border: none;
@@ -209,17 +209,6 @@
             border-radius: 50%;
             background: currentColor;
         }
-
-        .connect-overlay {
-            position: absolute;
-            inset: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 2;
-            background: rgba(10, 14, 23, 0.45);
-        }
-        .connect-overlay.hidden { display: none; }
 
         .reticle-corner {
             position: absolute;
@@ -372,12 +361,8 @@
                     <span class="reticle-corner bl"></span>
                     <span class="reticle-corner br"></span>
                     <span class="scan-line"></span>
-
-                    <span class="feed-status" id="robotFeedStatus">Not connected</span>
-                    <video id="localCamVideo" style="display:none;" autoplay playsinline muted></video>
-                    <div class="connect-overlay" id="robotConnectOverlay">
-                        <button class="btn btn-primary" onclick="useLocalCamera()">📷 Connect Camera</button>
-                    </div>
+                    <span class="feed-status" id="robotFeedStatus">Waiting for feed…</span>
+                    <iframe id="vdoRobot" src="https://vdo.ninja/?view=utheh-robotcam-2026&autoplay=1&mute=1&api=1&turn=1" allow="autoplay; camera; microphone"></iframe>
                 </div>
             </div>
 
@@ -389,12 +374,8 @@
                     <span class="reticle-corner bl"></span>
                     <span class="reticle-corner br"></span>
                     <span class="scan-line"></span>
-
-                    <span class="feed-status" id="creaformFeedStatus">Not connected</span>
-                    <video id="localScreenVideo" style="display:none;" autoplay playsinline muted></video>
-                    <div class="connect-overlay" id="creaformConnectOverlay">
-                        <button class="btn btn-primary" onclick="useLocalScreen()">🖥️ Connect Screen Share</button>
-                    </div>
+                    <span class="feed-status" id="creaformFeedStatus">Waiting for feed…</span>
+                    <iframe id="vdoCreaform" src="https://vdo.ninja/?view=utheh-creaform-2026&autoplay=1&mute=1&api=1&turn=1" allow="autoplay; display-capture"></iframe>
                 </div>
             </div>
         </section>
@@ -459,13 +440,29 @@
         const errorBanner = document.getElementById('errorBanner');
         const errorBannerText = document.getElementById('errorBannerText');
 
+        // VDO.Ninja Status Badges & Event Listener
+        const vdoRobot = document.getElementById('vdoRobot');
+        const vdoCreaform = document.getElementById('vdoCreaform');
         const robotStatus = document.getElementById('robotFeedStatus');
         const creaformStatus = document.getElementById('creaformFeedStatus');
 
         function setFeedStatus(el, connected) {
-            el.textContent = connected ? 'Connected' : 'Not connected';
+            el.textContent = connected ? 'Connected' : 'Waiting for feed…';
             el.classList.toggle('connected', connected);
         }
+
+        window.addEventListener('message', (e) => {
+            if (e.source !== vdoRobot.contentWindow && e.source !== vdoCreaform.contentWindow) return;
+            if (!e.data || !('action' in e.data)) return;
+
+            const target = e.source === vdoRobot.contentWindow ? robotStatus : creaformStatus;
+
+            if (e.data.action === 'guest-connected') {
+                setFeedStatus(target, true);
+            } else if (e.data.action === 'push-connection' && e.data.value === false) {
+                setFeedStatus(target, false);
+            }
+        });
 
         function initChart() {
             const ctx = document.getElementById('deviationChart').getContext('2d');
@@ -578,44 +575,6 @@
             deviationChart.data.datasets[0].backgroundColor = results.map(r => r.status === 'PASS' ? 'rgba(61, 220, 151, 0.65)' : 'rgba(255, 107, 107, 0.65)');
             deviationChart.data.datasets[0].borderColor = results.map(r => r.status === 'PASS' ? '#3ddc97' : '#ff6b6b');
             deviationChart.update();
-        }
-
-        async function useLocalCamera() {
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-                const video = document.getElementById('localCamVideo');
-                video.style.display = 'block';
-                video.srcObject = stream;
-                document.getElementById('robotConnectOverlay').classList.add('hidden');
-                setFeedStatus(robotStatus, true);
-
-                stream.getVideoTracks()[0].addEventListener('ended', () => {
-                    setFeedStatus(robotStatus, false);
-                    document.getElementById('robotConnectOverlay').classList.remove('hidden');
-                    video.style.display = 'none';
-                });
-            } catch (e) {
-                showError('Could not access local camera.');
-            }
-        }
-
-        async function useLocalScreen() {
-            try {
-                const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
-                const video = document.getElementById('localScreenVideo');
-                video.style.display = 'block';
-                video.srcObject = stream;
-                document.getElementById('creaformConnectOverlay').classList.add('hidden');
-                setFeedStatus(creaformStatus, true);
-
-                stream.getVideoTracks()[0].addEventListener('ended', () => {
-                    setFeedStatus(creaformStatus, false);
-                    document.getElementById('creaformConnectOverlay').classList.remove('hidden');
-                    video.style.display = 'none';
-                });
-            } catch (e) {
-                showError('Screen share cancelled or not allowed.');
-            }
         }
 
         document.addEventListener('DOMContentLoaded', () => {
