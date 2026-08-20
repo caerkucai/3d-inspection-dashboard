@@ -6,6 +6,34 @@
     <title>3D Automated Inspection Dashboard</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .video-box {
+            width: 100%;
+            height: 320px;
+            background-color: #0f172a;
+            border-radius: 8px;
+            object-fit: cover;
+            border: 1px solid #334155;
+        }
+        .stream-controls {
+            margin-top: 10px;
+            display: flex;
+            gap: 10px;
+        }
+        .btn-stream {
+            background-color: #3b82f6;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        .btn-stream:hover {
+            background-color: #2563eb;
+        }
+    </style>
 </head>
 <body>
 
@@ -13,7 +41,7 @@
         <header class="dashboard-header">
             <div class="header-title">
                 <h1>3D AUTOMATED INSPECTION WORKCELL</h1>
-                <span class="badge live-badge">● LIVE SYSTEM</span>
+                <span class="badge live-badge">● LIVE LOCAL FEED</span>
             </div>
             <div class="header-actions">
                 <button id="triggerScanBtn" class="btn btn-primary">▶ TRIGGER NEW SCAN</button>
@@ -23,23 +51,17 @@
         <section class="viewport-grid">
             <div class="video-card">
                 <h3>🤖 Robot Workcell View</h3>
-                <div class="video-container" style="position: relative; width: 100%; height: 320px;">
-                    <iframe 
-                        src="https://vdo.ninja/?view=exhibition_robot_cam&autoplay=1&mute=1&transparent=1" 
-                        allow="autoplay; camera; microphone; display-capture" 
-                        style="width: 100%; height: 100%; border: none; border-radius: 8px;">
-                    </iframe>
+                <video id="webcamFeed" class="video-box" autoplay playsinline muted></video>
+                <div class="stream-controls">
+                    <button class="btn-stream" onclick="startWebcam()">📷 Start Robot Camera</button>
                 </div>
             </div>
 
             <div class="video-card">
                 <h3>📐 Creaform VXelements View</h3>
-                <div class="video-container" style="position: relative; width: 100%; height: 320px;">
-                    <iframe 
-                        src="https://vdo.ninja/?view=exhibition_creaform_screen&autoplay=1&mute=1&transparent=1" 
-                        allow="autoplay; camera; microphone; display-capture" 
-                        style="width: 100%; height: 100%; border: none; border-radius: 8px;">
-                    </iframe>
+                <video id="screenFeed" class="video-box" autoplay playsinline muted></video>
+                <div class="stream-controls">
+                    <button class="btn-stream" onclick="startScreenShare()">🖥️ Select Creaform Window</button>
                 </div>
             </div>
         </section>
@@ -100,6 +122,32 @@
     <script>
         let deviationChart = null;
 
+        // 1. Native Webcam Capture
+        async function startWebcam() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { width: { ideal: 1280 }, height: { ideal: 720 } }, 
+                    audio: false 
+                });
+                document.getElementById('webcamFeed').srcObject = stream;
+            } catch (err) {
+                alert("Camera access denied or device not found: " + err.message);
+            }
+        }
+
+        // 2. Native Screen Share Capture (Creaform Window)
+        async function startScreenShare() {
+            try {
+                const stream = await navigator.mediaDevices.getDisplayMedia({ 
+                    video: { displaySurface: "window" }, 
+                    audio: false 
+                });
+                document.getElementById('screenFeed').srcObject = stream;
+            } catch (err) {
+                console.log("Screen share cancelled or failed: ", err);
+            }
+        }
+
         // Initialize Chart.js
         function initChart() {
             const ctx = document.getElementById('deviationChart').getContext('2d');
@@ -152,7 +200,6 @@
 
         // Update Dashboard Data UI
         function updateDashboard(data) {
-            // Update KPIs
             if (data.kpis) {
                 document.getElementById('totalScans').textContent = data.kpis.total_scans || '0';
                 document.getElementById('passRate').textContent = (data.kpis.pass_rate || '0') + '%';
@@ -163,7 +210,6 @@
                 statusElem.style.color = data.kpis.last_status === 'PASS' ? '#22c55e' : '#ef4444';
             }
 
-            // Update Table & Chart
             if (data.results && data.results.length > 0) {
                 const tbody = document.getElementById('inspectionTableBody');
                 tbody.innerHTML = '';
@@ -201,9 +247,10 @@
             }
         }
 
-        // Initialize on DOM load
+        // Initialize on page load
         document.addEventListener('DOMContentLoaded', () => {
             initChart();
+            startWebcam(); // Auto-prompt for webcam on page load
             document.getElementById('triggerScanBtn').addEventListener('click', triggerScan);
         });
     </script>
