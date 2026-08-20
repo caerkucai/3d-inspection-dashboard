@@ -363,7 +363,7 @@
                     <span class="scan-line"></span>
                     <span class="feed-status" id="robotFeedStatus">Waiting for feed…</span>
                     <iframe id="vdoRobot"
-                            src="https://vdo.ninja/?view=uthehrobotcam2026&relay&autoplay=1&mute=1&api=1"
+                            src="https://vdo.ninja/?view=uthehrobotcam2026&autoplay=1&mute=1&clean&api=1"
                             allow="camera; microphone; autoplay; fullscreen; display-capture"
                             allowfullscreen>
                     </iframe>
@@ -380,7 +380,7 @@
                     <span class="scan-line"></span>
                     <span class="feed-status" id="creaformFeedStatus">Waiting for feed…</span>
                     <iframe id="vdoCreaform"
-                            src="https://vdo.ninja/?view=uthehcreaform2026&relay&autoplay=1&mute=1&api=1"
+                            src="https://vdo.ninja/?view=uthehcreaform2026&autoplay=1&mute=1&clean&api=1"
                             allow="camera; microphone; autoplay; fullscreen; display-capture"
                             allowfullscreen>
                     </iframe>
@@ -459,6 +459,20 @@
             el.classList.toggle('connected', connected);
         }
 
+        // Direct push/view links don't reliably fire 'guest-connected' postMessage
+        // events (that's really meant for room-based setups). Instead, treat a
+        // successful iframe load as the connection signal, with a short delay to
+        // let the WebRTC handshake actually complete after the page itself loads.
+        function watchFeed(iframeEl, statusEl) {
+            iframeEl.addEventListener('load', () => {
+                setTimeout(() => setFeedStatus(statusEl, true), 3000);
+            });
+        }
+        watchFeed(vdoRobot, robotStatus);
+        watchFeed(vdoCreaform, creaformStatus);
+
+        // Still listen for postMessage events in case they do fire (bonus signal,
+        // e.g. to flip back to "waiting" if a stream drops).
         window.addEventListener('message', (e) => {
             if (e.source !== vdoRobot.contentWindow && e.source !== vdoCreaform.contentWindow) return;
             if (!e.data || !('action' in e.data)) return;
