@@ -362,7 +362,11 @@
                     <span class="reticle-corner br"></span>
                     <span class="scan-line"></span>
                     <span class="feed-status" id="robotFeedStatus">Waiting for feed…</span>
-                    <iframe id="vdoRobot" src="https://vdo.ninja/?view=utheh-robotcam-2026&autoplay=1&mute=1&api=1&turn=1&codec=h264" allow="autoplay; camera; microphone"></iframe>
+                    <iframe id="vdoRobot"
+                            src="https://vdo.ninja/?view=uthehrobotcam2026&relay&autoplay=1&mute=1&api=1"
+                            allow="camera; microphone; autoplay; fullscreen; display-capture"
+                            allowfullscreen>
+                    </iframe>
                 </div>
             </div>
 
@@ -375,7 +379,11 @@
                     <span class="reticle-corner br"></span>
                     <span class="scan-line"></span>
                     <span class="feed-status" id="creaformFeedStatus">Waiting for feed…</span>
-                    <iframe id="vdoCreaform" src="https://vdo.ninja/?view=utheh-creaform-2026&autoplay=1&mute=1&api=1&turn=1&codec=h264" allow="autoplay; display-capture"></iframe>
+                    <iframe id="vdoCreaform"
+                            src="https://vdo.ninja/?view=uthehcreaform2026&relay&autoplay=1&mute=1&api=1"
+                            allow="camera; microphone; autoplay; fullscreen; display-capture"
+                            allowfullscreen>
+                    </iframe>
                 </div>
             </div>
         </section>
@@ -534,7 +542,7 @@
                 document.getElementById('totalScans').textContent = data.kpis.total_scans;
                 document.getElementById('passRate').textContent = `${data.kpis.pass_rate}%`;
                 document.getElementById('avgDeviation').textContent = `${data.kpis.avg_dev} mm`;
-                
+
                 const lastStatus = document.getElementById('lastStatus');
                 lastStatus.textContent = data.kpis.last_status;
                 lastStatus.style.color = data.kpis.last_status === 'PASS' ? 'var(--pass)' : 'var(--fail)';

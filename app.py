@@ -1,90 +1,41 @@
-from flask import Flask, render_template, redirect, url_for
-import database
-import random
 import os
+import random
+from flask import Flask, render_template, jsonify
 
 app = Flask(__name__)
 
-# Initialize database
-database.init_db()
+@app.route('/')
+def index():
+    return render_template('index.html')
 
-def generate_qc_features(status):
-    feature_definitions = [
-        {"name": "Hole Ø1", "nominal": 6.00, "tolerance": 0.10},
-        {"name": "Hole Ø2", "nominal": 6.00, "tolerance": 0.10},
-        {"name": "Length A", "nominal": 120.00, "tolerance": 0.10},
-        {"name": "Width B", "nominal": 50.00, "tolerance": 0.10},
-        {"name": "Flatness", "nominal": 0.00, "tolerance": 0.10}
-    ]
-
-    features = []
-    for feature in feature_definitions:
-        dev = round(random.uniform(-0.05, 0.05), 2)
-        features.append({
-            "name": feature["name"],
-            "nominal": feature["nominal"],
-            "actual": round(feature["nominal"] + dev, 2),
-            "deviation": dev,
-            "tolerance": feature["tolerance"],
-            "status": "PASS"
-        })
-
-    if status == "FAIL":
-        fail_idx = random.randint(0, len(features) - 1)
-        fail_dev = round(random.choice([random.uniform(0.12, 0.25), random.uniform(-0.25, -0.12)]), 2)
-        features[fail_idx]["deviation"] = fail_dev
-        features[fail_idx]["actual"] = round(features[fail_idx]["nominal"] + fail_dev, 2)
-        features[fail_idx]["status"] = "FAIL"
-
-    return features
-
-def format_dev(val):
-    return f"+{val:.2f} mm" if val > 0 else f"{val:.2f} mm"
-
-@app.route("/")
-def home():
-    history = database.get_all_inspections()
-    latest = database.get_latest()
-
-    if latest is None:
-        return "No inspection data available."
-
-    features = database.get_measurements(latest["scan_id"])
-
-    qc_data = {
-        "part_id": latest["part_id"],
-        "scan_id": latest["scan_id"],
-        "inspection_date": latest["timestamp"],
-        "status": latest["status"],
-        "total_checked": len(history),
-        "passed_count": sum(1 for i in history if i["status"] == "PASS"),
-        "failed_count": sum(1 for i in history if i["status"] == "FAIL"),
-        "max_deviation": latest["max_dev"],
-        "min_deviation": latest["min_dev"],
-        "features": features,
-        "history": history
-    }
-
-    return render_template("index.html", qc=qc_data)
-
-@app.route("/trigger_scan")
+@app.route('/api/scan', methods=['POST'])
 def trigger_scan():
-    overall_status = random.choice(["PASS", "PASS", "PASS", "FAIL"])
-    features = generate_qc_features(overall_status)
+    # Generate realistic 3D measurement deviations (in mm)
+    dev_x = round(random.uniform(-0.04, 0.04), 3)
+    dev_y = round(random.uniform(-0.05, 0.05), 3)
+    dev_z = round(random.uniform(-0.03, 0.03), 3)
+    
+    status_x = "PASS" if abs(dev_x) <= 0.035 else "FAIL"
+    status_y = "PASS" if abs(dev_y) <= 0.035 else "FAIL"
+    status_z = "PASS" if abs(dev_z) <= 0.035 else "FAIL"
+    
+    overall_status = "PASS" if (status_x == "PASS" and status_y == "PASS" and status_z == "PASS") else "FAIL"
 
-    devs = [f["deviation"] for f in features]
-    part_id = f"PART-2026-X{random.randint(1, 5)}"
+    return jsonify({
+        "success": True,
+        "kpis": {
+            "total_scans": random.randint(18, 60),
+            "pass_rate": round(random.uniform(93.0, 98.5), 1),
+            "avg_dev": round((abs(dev_x) + abs(dev_y) + abs(dev_z)) / 3, 3),
+            "last_status": overall_status
+        },
+        "results": [
+            {"parameter": "Length X", "nominal": 120.000, "measured": round(120.000 + dev_x, 3), "deviation": dev_x, "status": status_x},
+            {"parameter": "Width Y",  "nominal": 60.000,  "measured": round(60.000 + dev_y, 3),  "deviation": dev_y, "status": status_y},
+            {"parameter": "Height Z", "nominal": 30.000,  "measured": round(30.000 + dev_z, 3),  "deviation": dev_z, "status": status_z}
+        ]
+    })
 
-    database.add_new_scan(
-        part_id=part_id,
-        status=overall_status,
-        max_dev=format_dev(max(devs)),
-        min_dev=format_dev(min(devs)),
-        features=features
-    )
-
-    return redirect(url_for("home"))
-
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+if __name__ == '__main__':
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=True)
