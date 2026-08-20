@@ -1,0 +1,44 @@
+{
+  "history_count": 2,
+  "history_pass": 1,
+  "latest": {
+    "part_name": "kkkk",
+    "timestamp": "2026-08-21 06:48:59",
+    "kpis": {
+      "total_scans": 2,
+      "pass_rate": 50.0,
+      "avg_dev": 0.1,
+      "last_status": "PASS"
+    },
+    "results": [
+      {
+        "parameter": "Point 1",
+        "nominal": 0.0,
+        "measured": 0.1,
+        "deviation": 0.1,
+        "status": "PASS"
+      },
+      {
+        "parameter": "Point 2",
+        "nominal": 0.0,
+        "measured": 0.1,
+        "deviation": 0.1,
+        "status": "PASS"
+      },
+      {
+        "parameter": "Point 3",
+        "nominal": 0.0,
+        "measured": 0.1,
+        "deviation": 0.1,
+        "status": "PASS"
+      },
+      {
+        "parameter": "Point 4",
+        "nominal": 0.0,
+        "measured": 0.1,
+        "deviation": 0.1,
+        "status": "PASS"
+      }
+    ]
+  }
+}

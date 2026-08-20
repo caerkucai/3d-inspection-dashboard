@@ -112,6 +112,13 @@
         .btn-primary:hover { transform: translateY(-1px); }
         .btn-primary[disabled] { opacity: 0.55; cursor: not-allowed; transform: none; }
 
+        .btn-secondary {
+            background: var(--panel-alt);
+            color: var(--ink-1);
+            border: 1px solid var(--line);
+        }
+        .btn-secondary:hover { background: var(--line); }
+
         .spinner {
             display: inline-block;
             width: 11px; height: 11px;
@@ -343,7 +350,7 @@
                 <span class="badge">Live broadcast</span>
             </div>
             <div>
-                <button id="triggerScanBtn" class="btn btn-primary">▶ Trigger New Scan</button>
+                <button id="triggerScanBtn" class="btn btn-primary">⟳ Refresh Latest Result</button>
             </div>
         </header>
 
@@ -387,6 +394,30 @@
                 </div>
             </div>
         </section>
+
+        <section class="data-card" id="entryCard" style="margin-bottom: 28px;">
+            <h3>Log Inspection Result</h3>
+            <div style="display:flex; gap:14px; flex-wrap:wrap; margin-bottom:14px;">
+                <div style="flex:1; min-width:180px;">
+                    <label style="display:block; font-size:0.72rem; color:var(--ink-3); margin-bottom:4px;">Part Name</label>
+                    <input id="partNameInput" type="text" placeholder="e.g. BRKT RADIATOR RH"
+                           style="width:100%; background:var(--panel-alt); border:1px solid var(--line); border-radius:6px; color:var(--ink-1); padding:8px 10px; font-family:var(--font-mono); font-size:0.85rem;">
+                </div>
+                <div style="width:140px;">
+                    <label style="display:block; font-size:0.72rem; color:var(--ink-3); margin-bottom:4px;">Tolerance (± mm)</label>
+                    <input id="toleranceInput" type="number" step="0.001" value="0.500"
+                           style="width:100%; background:var(--panel-alt); border:1px solid var(--line); border-radius:6px; color:var(--ink-1); padding:8px 10px; font-family:var(--font-mono); font-size:0.85rem;">
+                </div>
+            </div>
+
+            <div id="pointsContainer"></div>
+
+            <div style="display:flex; gap:10px; margin-top:12px;">
+                <button class="btn btn-secondary" style="width:auto; margin-top:0;" onclick="addPointRow()">+ Add Point</button>
+                <button class="btn btn-primary" id="submitResultBtn" onclick="submitResult()">Save &amp; Update Dashboard</button>
+            </div>
+        </section>
+
 
         <section class="kpi-grid">
             <div class="kpi-card">
@@ -524,30 +555,110 @@
 
         function setScanning(isScanning) {
             scanBtn.disabled = isScanning;
-            scanBtn.innerHTML = isScanning ? '<span class="spinner"></span>Scanning…' : '▶ Trigger New Scan';
+            scanBtn.innerHTML = isScanning ? '<span class="spinner"></span>Loading…' : '⟳ Refresh Latest Result';
             document.body.classList.toggle('is-scanning', isScanning);
         }
 
-        async function triggerScan() {
+        async function fetchLatestResult() {
             hideError();
             setScanning(true);
-
             try {
-                const response = await fetch('/api/scan', { method: 'POST' });
+                const response = await fetch('/api/latest-result');
                 if (!response.ok) throw new Error(`HTTP Error ${response.status}`);
-
                 const data = await response.json();
-
                 if (data.success) {
                     updateDashboard(data);
-                    document.getElementById('lastUpdated').textContent = `Last updated ${new Date().toLocaleTimeString()}`;
+                    document.getElementById('lastUpdated').textContent = data.timestamp
+                        ? `Last result: ${data.part_name || 'Unnamed Part'} — ${data.timestamp}`
+                        : 'Ready for inspection scan';
                 } else {
-                    showError('Scan execution failed.');
+                    showError('Could not load latest result.');
                 }
             } catch (err) {
-                showError('Could not connect to /api/scan backend endpoint.');
+                showError('Could not connect to /api/latest-result backend endpoint.');
             } finally {
                 setScanning(false);
+            }
+        }
+
+        // --- Manual measurement entry ---
+        let pointCounter = 0;
+
+        function addPointRow(label = '', deviation = '') {
+            pointCounter++;
+            const id = pointCounter;
+            const row = document.createElement('div');
+            row.id = `pointRow${id}`;
+            row.style = 'display:flex; gap:10px; align-items:center; margin-bottom:8px;';
+
+            const labelInput = document.createElement('input');
+            labelInput.type = 'text';
+            labelInput.placeholder = `Label (e.g. Point ${id})`;
+            labelInput.value = label;
+            labelInput.className = 'pointLabel';
+            labelInput.style = 'flex:1; background:var(--panel-alt); border:1px solid var(--line); border-radius:6px; color:var(--ink-1); padding:7px 10px; font-family:var(--font-mono); font-size:0.82rem;';
+
+            const devInput = document.createElement('input');
+            devInput.type = 'number';
+            devInput.step = '0.001';
+            devInput.placeholder = 'Deviation (mm)';
+            devInput.value = deviation;
+            devInput.className = 'pointDeviation';
+            devInput.style = 'width:150px; background:var(--panel-alt); border:1px solid var(--line); border-radius:6px; color:var(--ink-1); padding:7px 10px; font-family:var(--font-mono); font-size:0.82rem;';
+
+            const removeBtn = document.createElement('button');
+            removeBtn.textContent = '✕';
+            removeBtn.style = 'background:none; border:none; color:var(--ink-3); cursor:pointer; font-size:1rem;';
+            removeBtn.addEventListener('click', () => row.remove());
+
+            row.appendChild(labelInput);
+            row.appendChild(devInput);
+            row.appendChild(removeBtn);
+            document.getElementById('pointsContainer').appendChild(row);
+        }
+
+        async function submitResult() {
+            hideError();
+            const partName = document.getElementById('partNameInput').value;
+            const tolerance = document.getElementById('toleranceInput').value;
+
+            const rows = document.querySelectorAll('#pointsContainer > div');
+            const points = [];
+            rows.forEach(row => {
+                const label = row.querySelector('.pointLabel').value;
+                const deviation = row.querySelector('.pointDeviation').value;
+                if (deviation !== '') {
+                    points.push({ label, deviation });
+                }
+            });
+
+            if (points.length === 0) {
+                showError('Enter at least one measurement point before saving.');
+                return;
+            }
+
+            const submitBtn = document.getElementById('submitResultBtn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Saving…';
+
+            try {
+                const response = await fetch('/api/submit-result', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ part_name: partName, tolerance, points })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    updateDashboard(data);
+                    document.getElementById('lastUpdated').textContent = `Last result: ${data.part_name || 'Unnamed Part'} — ${data.timestamp}`;
+                } else {
+                    showError(data.error || 'Failed to save result.');
+                }
+            } catch (err) {
+                showError('Could not connect to /api/submit-result backend endpoint.');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Save & Update Dashboard';
             }
         }
 
@@ -578,13 +689,34 @@
                 const bg = isPass ? 'var(--pass-dim)' : 'var(--fail-dim)';
 
                 const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${row.parameter}</td>
-                    <td>${Number(row.nominal).toFixed(3)}</td>
-                    <td>${Number(row.measured).toFixed(3)}</td>
-                    <td style="color:${color}; font-weight:600;">${row.deviation > 0 ? '+' : ''}${Number(row.deviation).toFixed(3)}</td>
-                    <td><span class="status-pill" style="background:${bg}; color:${color}">${row.status}</span></td>
-                `;
+
+                const tdParam = document.createElement('td');
+                tdParam.textContent = row.parameter;
+                tr.appendChild(tdParam);
+
+                const tdNominal = document.createElement('td');
+                tdNominal.textContent = row.nominal != null ? Number(row.nominal).toFixed(3) : 'N/A';
+                tr.appendChild(tdNominal);
+
+                const tdMeasured = document.createElement('td');
+                tdMeasured.textContent = row.measured != null ? Number(row.measured).toFixed(3) : 'N/A';
+                tr.appendChild(tdMeasured);
+
+                const tdDev = document.createElement('td');
+                tdDev.style.color = color;
+                tdDev.style.fontWeight = '600';
+                tdDev.textContent = `${row.deviation > 0 ? '+' : ''}${Number(row.deviation).toFixed(3)}`;
+                tr.appendChild(tdDev);
+
+                const tdStatus = document.createElement('td');
+                const pill = document.createElement('span');
+                pill.className = 'status-pill';
+                pill.style.background = bg;
+                pill.style.color = color;
+                pill.textContent = row.status;
+                tdStatus.appendChild(pill);
+                tr.appendChild(tdStatus);
+
                 tbody.appendChild(tr);
             });
         }
@@ -601,8 +733,13 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             initChart();
-            scanBtn.addEventListener('click', triggerScan);
+            addPointRow('Point 1');
+            addPointRow('Point 2');
+            addPointRow('Point 3');
+            addPointRow('Point 4');
+            scanBtn.addEventListener('click', fetchLatestResult);
             document.getElementById('errorBannerClose').addEventListener('click', hideError);
+            fetchLatestResult();
         });
     </script>
 </body>
