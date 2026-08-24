@@ -1,0 +1,1192 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        EPMB × UTHM | Automated Inspection
+    </title>
+
+
+    <style>
+
+        :root {
+
+            --bg: #07111d;
+
+            --panel: #101c2b;
+
+            --panel-light: #142438;
+
+            --border: #263b52;
+
+            --text: #f1f6fb;
+
+            --muted: #91a7bc;
+
+            --green: #42e58d;
+
+            --red: #ff5f64;
+
+            --white: #ffffff;
+
+        }
+
+
+        * {
+            box-sizing: border-box;
+        }
+
+
+        body {
+
+            margin: 0;
+
+            min-height: 100vh;
+
+            background:
+                radial-gradient(
+                    circle at 5% 0%,
+                    rgba(40, 160, 220, 0.08),
+                    transparent 30%
+                ),
+                radial-gradient(
+                    circle at 100% 0%,
+                    rgba(50, 80, 150, 0.15),
+                    transparent 35%
+                ),
+                var(--bg);
+
+            color: var(--text);
+
+            font-family:
+                "Segoe UI",
+                Arial,
+                sans-serif;
+        }
+
+
+        .page {
+
+            max-width: 1500px;
+
+            margin: auto;
+
+            padding: 24px;
+        }
+
+
+        /* =====================================================
+           HEADER
+        ===================================================== */
+
+        header {
+
+            display: flex;
+
+            justify-content: space-between;
+
+            align-items: center;
+
+            gap: 20px;
+
+            padding-bottom: 20px;
+
+            margin-bottom: 22px;
+
+            border-bottom:
+                1px solid var(--border);
+        }
+
+
+        .logo {
+
+            width: 390px;
+
+            max-width: 45vw;
+
+            height: auto;
+
+            background: white;
+
+            padding: 8px;
+
+            border-radius: 10px;
+
+            display: block;
+        }
+
+
+        .header-title {
+
+            text-align: right;
+        }
+
+
+        .header-title h1 {
+
+            margin: 0;
+
+            font-size: 30px;
+
+            font-weight: 800;
+
+            letter-spacing: 0.04em;
+        }
+
+
+        .header-title p {
+
+            margin:
+
+                7px 0 0;
+
+            color: var(--muted);
+
+            font-size: 14px;
+        }
+
+
+        /* =====================================================
+           VIDEO SECTION
+        ===================================================== */
+
+        .video-grid {
+
+            display: grid;
+
+            grid-template-columns:
+                repeat(2, minmax(0, 1fr));
+
+            gap: 20px;
+
+            margin-bottom: 20px;
+        }
+
+
+        .video-card {
+
+            overflow: hidden;
+
+            border:
+                1px solid var(--border);
+
+            border-radius: 14px;
+
+            background:
+                rgba(16, 28, 43, 0.96);
+
+            box-shadow:
+                0 12px 35px rgba(0, 0, 0, 0.2);
+        }
+
+
+        .video-header {
+
+            padding: 15px 18px;
+
+            border-bottom:
+                1px solid var(--border);
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: space-between;
+        }
+
+
+        .video-header h2 {
+
+            margin: 0;
+
+            font-size: 15px;
+
+            font-weight: 800;
+
+            letter-spacing: 0.08em;
+
+            text-transform: uppercase;
+        }
+
+
+        .live {
+
+            display: inline-flex;
+
+            align-items: center;
+
+            gap: 7px;
+
+            color: var(--green);
+
+            font-size: 12px;
+
+            font-weight: 700;
+
+            letter-spacing: 0.04em;
+        }
+
+
+        .live-dot {
+
+            width: 9px;
+
+            height: 9px;
+
+            border-radius: 50%;
+
+            background: var(--green);
+
+            box-shadow:
+                0 0 10px
+                rgba(66, 229, 141, 0.7);
+        }
+
+
+        .video-container {
+
+            position: relative;
+
+            width: 100%;
+
+            aspect-ratio: 16 / 9;
+
+            background: #000;
+        }
+
+
+        .video-container iframe {
+
+            display: block;
+
+            width: 100%;
+
+            height: 100%;
+
+            border: 0;
+
+            background: #000;
+        }
+
+
+        .video-footer {
+
+            display: flex;
+
+            justify-content: space-between;
+
+            align-items: center;
+
+            padding: 10px 15px;
+
+            color: var(--muted);
+
+            font-size: 11px;
+        }
+
+
+        /* =====================================================
+           SUMMARY
+        ===================================================== */
+
+        .summary-grid {
+
+            display: grid;
+
+            grid-template-columns:
+                repeat(3, minmax(0, 1fr));
+
+            gap: 16px;
+
+            margin-bottom: 20px;
+        }
+
+
+        .summary-card {
+
+            padding: 20px;
+
+            border:
+                1px solid var(--border);
+
+            border-radius: 14px;
+
+            background:
+                rgba(16, 28, 43, 0.96);
+        }
+
+
+        .summary-label {
+
+            color: var(--muted);
+
+            font-size: 12px;
+
+            text-transform: uppercase;
+
+            letter-spacing: 0.12em;
+        }
+
+
+        .summary-value {
+
+            margin-top: 8px;
+
+            font-size: 38px;
+
+            font-weight: 800;
+
+            line-height: 1;
+        }
+
+
+        .summary-value.pass {
+
+            color: var(--green);
+        }
+
+
+        .summary-value.ng {
+
+            color: var(--red);
+        }
+
+
+        /* =====================================================
+           RESULTS
+        ===================================================== */
+
+        .results-card {
+
+            padding: 20px;
+
+            background:
+                rgba(16, 28, 43, 0.96);
+
+            border:
+                1px solid var(--border);
+
+            border-radius: 14px;
+        }
+
+
+        .results-header {
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: space-between;
+
+            gap: 20px;
+
+            margin-bottom: 12px;
+        }
+
+
+        .results-header h2 {
+
+            margin: 0;
+
+            font-size: 16px;
+
+            letter-spacing: 0.08em;
+
+            text-transform: uppercase;
+        }
+
+
+        .source {
+
+            color: var(--muted);
+
+            font-size: 11px;
+        }
+
+
+        .table-wrapper {
+
+            overflow-x: auto;
+        }
+
+
+        table {
+
+            width: 100%;
+
+            border-collapse: collapse;
+
+            min-width: 650px;
+        }
+
+
+        th {
+
+            padding: 12px;
+
+            color: #8ba1b7;
+
+            text-align: left;
+
+            font-size: 10px;
+
+            text-transform: uppercase;
+
+            letter-spacing: 0.1em;
+
+            border-bottom:
+                1px solid var(--border);
+        }
+
+
+        td {
+
+            padding: 13px 12px;
+
+            font-size: 13px;
+
+            border-bottom:
+                1px solid #1c2f43;
+        }
+
+
+        .result-pill {
+
+            display: inline-flex;
+
+            align-items: center;
+
+            padding: 4px 9px;
+
+            border-radius: 999px;
+
+            font-size: 11px;
+
+            font-weight: 800;
+        }
+
+
+        .result-pill.pass {
+
+            color: var(--green);
+
+            background:
+                rgba(66, 229, 141, 0.12);
+        }
+
+
+        .result-pill.ng {
+
+            color: var(--red);
+
+            background:
+                rgba(255, 95, 100, 0.12);
+        }
+
+
+        .empty {
+
+            color: var(--muted);
+
+            text-align: center;
+
+            padding: 25px;
+        }
+
+
+        .error {
+
+            display: none;
+
+            margin-bottom: 18px;
+
+            padding: 12px 15px;
+
+            border-radius: 10px;
+
+            color: #ffb6b6;
+
+            background: #2b1518;
+
+            border:
+                1px solid #633237;
+        }
+
+
+        .error.show {
+
+            display: block;
+        }
+
+
+        /* =====================================================
+           FOOTER
+        ===================================================== */
+
+        .footer {
+
+            margin-top: 18px;
+
+            text-align: center;
+
+            color: var(--muted);
+
+            font-size: 11px;
+        }
+
+
+        /* =====================================================
+           RESPONSIVE
+        ===================================================== */
+
+        @media (max-width: 950px) {
+
+            .video-grid {
+
+                grid-template-columns: 1fr;
+            }
+
+            .header-title {
+
+                text-align: left;
+            }
+
+            header {
+
+                align-items: flex-start;
+            }
+        }
+
+
+        @media (max-width: 650px) {
+
+            .page {
+
+                padding: 14px;
+            }
+
+
+            header {
+
+                flex-direction: column;
+            }
+
+
+            .logo {
+
+                width: 100%;
+
+                max-width: 100%;
+            }
+
+
+            .summary-grid {
+
+                grid-template-columns: 1fr;
+            }
+
+
+            .header-title h1 {
+
+                font-size: 23px;
+            }
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+
+<div class="page">
+
+
+    <!-- =====================================================
+         HEADER
+    ====================================================== -->
+
+    <header>
+
+        <img
+            class="logo"
+            src="{{ url_for(
+                'static',
+                filename='assets/epmb-x-uthm.jpg'
+            ) }}"
+            alt="EPMB × UTHM"
+        >
+
+
+        <div class="header-title">
+
+            <h1>
+                Automated Inspection Workcell
+            </h1>
+
+            <p>
+                Robot operation + inspection software + Creaform results
+            </p>
+
+        </div>
+
+    </header>
+
+
+    <!-- ERROR -->
+
+    <div
+        id="error"
+        class="error"
+    ></div>
+
+
+    <!-- =====================================================
+         VIDEO FEEDS
+    ====================================================== -->
+
+    <section class="video-grid">
+
+
+        <!-- ROBOT -->
+
+        <article class="video-card">
+
+
+            <div class="video-header">
+
+                <h2>
+                    Robot Operating Camera
+                </h2>
+
+
+                <div class="live">
+
+                    <span class="live-dot"></span>
+
+                    LIVE
+
+                </div>
+
+            </div>
+
+
+            <div class="video-container">
+
+                <iframe
+
+                    src="{{ robot_view_url }}"
+
+                    allow="
+                        autoplay;
+                        fullscreen;
+                        picture-in-picture;
+                        microphone;
+                        camera;
+                        display-capture
+                    "
+
+                    allowfullscreen
+
+                ></iframe>
+
+            </div>
+
+
+            <div class="video-footer">
+
+                <span>
+                    Robot operation
+                </span>
+
+                <span>
+                    Live feed
+                </span>
+
+            </div>
+
+
+        </article>
+
+
+
+        <!-- CREAFORM -->
+
+        <article class="video-card">
+
+
+            <div class="video-header">
+
+                <h2>
+                    Inspection Software Screen
+                </h2>
+
+
+                <div class="live">
+
+                    <span class="live-dot"></span>
+
+                    LIVE
+
+                </div>
+
+            </div>
+
+
+            <div class="video-container">
+
+                <iframe
+
+                    src="{{ software_view_url }}"
+
+                    allow="
+                        autoplay;
+                        fullscreen;
+                        picture-in-picture;
+                        microphone;
+                        camera;
+                        display-capture
+                    "
+
+                    allowfullscreen
+
+                ></iframe>
+
+            </div>
+
+
+            <div class="video-footer">
+
+                <span>
+                    Creaform inspection software
+                </span>
+
+                <span>
+                    Live screen
+                </span>
+
+            </div>
+
+
+        </article>
+
+
+    </section>
+
+
+
+    <!-- =====================================================
+         SUMMARY
+    ====================================================== -->
+
+    <section class="summary-grid">
+
+
+        <div class="summary-card">
+
+            <div class="summary-label">
+                Inspected Parts
+            </div>
+
+            <div
+                id="total"
+                class="summary-value"
+            >
+                —
+            </div>
+
+        </div>
+
+
+
+        <div class="summary-card">
+
+            <div class="summary-label">
+                PASS
+            </div>
+
+            <div
+                id="pass"
+                class="summary-value pass"
+            >
+                —
+            </div>
+
+        </div>
+
+
+
+        <div class="summary-card">
+
+            <div class="summary-label">
+                NG
+            </div>
+
+            <div
+                id="ng"
+                class="summary-value ng"
+            >
+                —
+            </div>
+
+        </div>
+
+
+    </section>
+
+
+
+    <!-- =====================================================
+         RESULTS TABLE
+    ====================================================== -->
+
+    <section class="results-card">
+
+
+        <div class="results-header">
+
+            <div>
+
+                <h2>
+                    Latest Creaform Results
+                </h2>
+
+                <div
+                    id="source"
+                    class="source"
+                >
+                    Loading...
+                </div>
+
+            </div>
+
+        </div>
+
+
+
+        <div class="table-wrapper">
+
+            <table>
+
+                <thead>
+
+                    <tr>
+
+                        <th>
+                            Part
+                        </th>
+
+                        <th>
+                            Overall Result
+                        </th>
+
+                        <th>
+                            Measurements
+                        </th>
+
+                        <th>
+                            Failed Measurements
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody id="resultsBody">
+
+                    <tr>
+
+                        <td
+                            colspan="4"
+                            class="empty"
+                        >
+                            Loading results...
+
+                        </td>
+
+                    </tr>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+
+    </section>
+
+
+
+    <div class="footer">
+
+        EPMB × UTHM Automated Inspection System
+
+    </div>
+
+
+</div>
+
+
+
+<script>
+
+
+    // ========================================================
+    // ESCAPE HTML
+    // ========================================================
+
+    function escapeHtml(value) {
+
+        return String(value).replace(
+            /[&<>'"]/g,
+            function (character) {
+
+                const map = {
+
+                    "&": "&amp;",
+                    "<": "&lt;",
+                    ">": "&gt;",
+                    "'": "&#39;",
+                    '"': "&quot;"
+
+                };
+
+                return map[character];
+
+            }
+        );
+
+    }
+
+
+
+    // ========================================================
+    // LOAD CSV RESULTS
+    // ========================================================
+
+    async function loadResults() {
+
+
+        const error =
+            document.getElementById("error");
+
+
+        try {
+
+
+            error.classList.remove("show");
+
+
+            const response =
+                await fetch(
+                    "/api/inspection-summary?ts="
+                    + Date.now(),
+                    {
+                        cache: "no-store"
+                    }
+                );
+
+
+            const data =
+                await response.json();
+
+
+            if (
+                !response.ok
+                || data.error
+            ) {
+
+                throw new Error(
+                    data.error
+                    || "Unable to read Creaform CSV."
+                );
+
+            }
+
+
+
+            // ------------------------------------------------
+            // SUMMARY
+            // ------------------------------------------------
+
+            document
+                .getElementById("total")
+                .textContent =
+                data.summary.total;
+
+
+            document
+                .getElementById("pass")
+                .textContent =
+                data.summary.pass;
+
+
+            document
+                .getElementById("ng")
+                .textContent =
+                data.summary.ng;
+
+
+
+            // ------------------------------------------------
+            // SOURCE INFO
+            // ------------------------------------------------
+
+            document
+                .getElementById("source")
+                .textContent =
+                `${data.source_file} • Updated ${data.updated_at}`;
+
+
+
+            // ------------------------------------------------
+            // TABLE
+            // ------------------------------------------------
+
+            const body =
+                document.getElementById(
+                    "resultsBody"
+                );
+
+
+            body.innerHTML = "";
+
+
+
+            if (
+                !data.parts
+                || data.parts.length === 0
+            ) {
+
+                body.innerHTML = `
+                    <tr>
+                        <td
+                            colspan="4"
+                            class="empty"
+                        >
+                            No inspection results available.
+                        </td>
+                    </tr>
+                `;
+
+                return;
+
+            }
+
+
+
+            // Latest parts first
+
+            const parts =
+                data.parts
+                    .slice()
+                    .reverse();
+
+
+
+            parts.forEach(
+                function (part) {
+
+
+                    const row =
+                        document.createElement("tr");
+
+
+                    const resultClass =
+                        part.status === "PASS"
+                            ? "pass"
+                            : "ng";
+
+
+                    row.innerHTML = `
+
+                        <td>
+                            ${escapeHtml(part.part)}
+                        </td>
+
+                        <td>
+
+                            <span
+                                class="
+                                    result-pill
+                                    ${resultClass}
+                                "
+                            >
+
+                                ${part.status}
+
+                            </span>
+
+                        </td>
+
+                        <td>
+                            ${part.measurements.length}
+                        </td>
+
+                        <td>
+                            ${part.failed_count}
+                        </td>
+
+                    `;
+
+
+                    body.appendChild(row);
+
+                }
+            );
+
+
+        }
+
+        catch (errorObject) {
+
+
+            error.textContent =
+                errorObject.message;
+
+
+            error.classList.add(
+                "show"
+            );
+
+        }
+
+    }
+
+
+
+    // ========================================================
+    // INITIAL LOAD
+    // ========================================================
+
+    loadResults();
+
+
+
+    // ========================================================
+    // AUTO REFRESH
+    // Every 10 seconds
+    // ========================================================
+
+    setInterval(
+        loadResults,
+        10000
+    );
+
+
+</script>
+
+
+</body>
+
+</html>
